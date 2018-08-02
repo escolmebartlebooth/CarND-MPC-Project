@@ -209,6 +209,18 @@ int main() {
           //.. add (x,y) points to list here, points are in reference to the vehicle's coordinate system
           // the points in the simulator are connected by a Green line
 
+          // we have the predicted way points in the vars result vector from mpc.Solve
+          // x is N in length from position 2
+          // y is N in length from position 2 + N
+          // vars is 2 * N + 2 in length
+          // TO DO should move N to a common value in mpc class
+          int N = 10;
+
+          for (int i=0; i<N-1; i++) {
+            mpc_x_vals.push_back(vars[2+i]);
+            mpc_y_vals.push_back(vars[2+i+N]);
+          }
+
           msgJson["mpc_x"] = mpc_x_vals;
           msgJson["mpc_y"] = mpc_y_vals;
 
