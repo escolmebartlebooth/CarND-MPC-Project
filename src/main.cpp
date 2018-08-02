@@ -188,8 +188,10 @@ int main() {
             cout << "delayed state: " << state << endl;
           }
           // solve for current state
-          //auto vars = mpc.Solve(state, coeffs);
-          // pass to mpc and get results back
+          auto vars = mpc.Solve(state, coeffs);
+          if (useDebug == 1) {
+            cout << "result: " << vars[0] << " " << vars[1] << endl;
+          }
 
           double steer_value;
           double throttle_value;
