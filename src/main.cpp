@@ -115,6 +115,23 @@ int main() {
           // and then using trig to calculate the car coord enquivalent position
           // we take to an EigenVector as that's what polyfit wants
 
+          const size_t n_points = ptsx.size();
+          auto car_ptsx = Eigen::VectorXd(n_points);
+          auto car_ptsy = Eigen::VectorXd(n_points);
+
+          for (unsigned int i=0; i < n_points; i++){
+            double dx = ptsx[i] - px;
+            double dy = ptsy[i] - py;
+
+            car_ptsx(i) = dx * cos(-psi)-dy*sin(-psi);
+            car_ptsy(i) = dx * sin(-psi)+dy*cos(-psi);
+
+          }
+
+          if (useDebug == 1) {
+            cout << "car waypoints X: " << car_ptsx << endl;
+            cout << "car waypoints Y: " << car_ptsy << endl;
+          }
 
 
           double steer_value;
