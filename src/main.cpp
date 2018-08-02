@@ -44,6 +44,15 @@ double polyeval(Eigen::VectorXd coeffs, double x) {
   return result;
 }
 
+// Evaluate a polynomial's first derivative.
+double polyevalpderivative(Eigen::VectorXd coeffs, double x) {
+  double result = 0.0;
+  for (int i = 1; i < coeffs.size(); i++) {
+    result += i * coeffs[i] * pow(x, i-1);
+  }
+  return result;
+}
+
 // Fit a polynomial.
 // Adapted from
 // https://github.com/JuliaMath/Polynomials.jl/blob/master/src/Polynomials.jl#L676-L716
@@ -133,6 +142,54 @@ int main() {
             cout << "car waypoints Y: " << car_ptsy << endl;
           }
 
+          // now calculate the coefficients of a 3rd order polynomial
+          // fitted to the way pointts in car coords
+          auto coeffs = polyfit(car_ptsx, car_ptsy, 3);
+          if (useDebug == 1) {
+            cout << "coeffs: " << coeffs << endl;
+          }
+
+          // now capture initial state
+          // x, y, psi are all 0 in car coordinates
+          // v is the current velocity of the vehicle
+          double x0 = 0;
+          double y0 = 0;
+          double psi0 = 0;
+          double v0 = v;
+
+          // calculate the error terms
+          // the cross-track error is how far off the y track the car is
+          // this will be equivalent to polyeval(coeffs, 0) given initial state
+          double cte0 = polyeval(coeffs, x0) - y0;
+          // the angle error is calculated from the 1st derivative of the coeffs
+          double epsi0 = psi0 - atan(polyevalpderivative(coeffs, x0));
+          if (useDebug == 1) {
+            cout << "car state: " << x0 << " " << y0 << " " << psi0 << " " << v0 << endl;
+            cout << "cte: " << cte0 << endl;
+            // didn't trust my function...
+            double epsi1 = psi0 - atan(coeffs[1] + 2 * coeffs[2] * x0 + 3 * coeffs[3] * x0 * x0);
+            cout << "epsi and x-check: " << epsi0 << " " << epsi1 << endl;
+          }
+          
+          // model latency in the actuation with motion models
+          double Lf = 2.67;
+          double delay = 0.1;
+          x0 = x0 + v0*cos(psi0)*delay;
+          y0 = y0 + v0*sin(psi0)*delay;
+          psi0 = psi0 - v0/Lf*delta*delay;
+          v0 = v0 + alpha*delay;
+          cte0 = cte0  + v0*sin(epsi0)*delay;
+          epsi0 = epsi0 - v0/Lf*delta*delay;
+
+          // create state vector
+          Eigen::VectorXd state(6);
+          state << x0, y0, psi0, v0, cte0, epsi0;
+          if (useDebug == 1) {
+            cout << "delayed state: " << state << endl;
+          }
+          // solve for current state
+          //auto vars = mpc.Solve(state, coeffs);
+          // pass to mpc and get results back
 
           double steer_value;
           double throttle_value;
@@ -159,6 +216,15 @@ int main() {
 
           //.. add (x,y) points to list here, points are in reference to the vehicle's coordinate system
           // the points in the simulator are connected by a Yellow line
+          // for a few steps at a stride length calculate way points based on the coeffs
+          // TO DO work out why we're not simply using car_ptsx and car_ptsy
+          int step_size = 2;
+          int step_count = 10;
+          for (int i=0; i<step_count; i++) {
+            int nx = step_size * i;
+            next_x_vals.push_back(nx);
+            next_y_vals.push_back(polyeval(coeffs, nx));
+          }
 
           msgJson["next_x"] = next_x_vals;
           msgJson["next_y"] = next_y_vals;
