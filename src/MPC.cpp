@@ -6,7 +6,7 @@
 using CppAD::AD;
 
 // TODO: Set the timestep length and duration
-size_t N = 10;
+size_t N = 25;
 double dt = 0.05;
 
 // This value assumes the model presented in the classroom is used.
@@ -40,10 +40,10 @@ size_t a_start = delta_start + N - 1;
 int cte_tune = 1;
 int epsi_tune = 1;
 int v_tune = 1;
-int delta_tune = 1;
-int alpha_tune = 1;
-int deltalag_tune = 1;
-int alphalag_tune = 1;
+int delta_tune = 1000;
+int alpha_tune = 100;
+int deltalag_tune = 1000;
+int alphalag_tune = 100;
 double max_throttle = 0.5;
 
 class FG_eval {
@@ -176,12 +176,12 @@ vector<double> MPC::Solve(Eigen::VectorXd state, Eigen::VectorXd coeffs) {
   }
 
   // set the initial state from the variables collected above
-  vars[x_start] = x;
-  vars[y_start] = y;
-  vars[psi_start] = psi;
-  vars[v_start] = v;
-  vars[cte_start] = cte;
-  vars[epsi_start] = epsi;
+  //vars[x_start] = x;
+  //vars[y_start] = y;
+  //vars[psi_start] = psi;
+  //vars[v_start] = v;
+  //vars[cte_start] = cte;
+  //vars[epsi_start] = epsi;
 
   Dvector vars_lowerbound(n_vars);
   Dvector vars_upperbound(n_vars);

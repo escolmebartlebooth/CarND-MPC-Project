@@ -193,8 +193,8 @@ int main() {
             cout << "result: " << vars[0] << " " << vars[1] << endl;
           }
 
-          double steer_value;
-          double throttle_value;
+          double steer_value = -vars[0]/deg2rad(25);
+          double throttle_value = vars[1];
 
           json msgJson;
           // NOTE: Remember to divide by deg2rad(25) before you send the steering value back.
@@ -214,7 +214,7 @@ int main() {
           // y is N in length from position 2 + N
           // vars is 2 * N + 2 in length
           // TO DO should move N to a common value in mpc class
-          int N = 10;
+          int N = 25;
 
           for (int i=0; i<N-1; i++) {
             mpc_x_vals.push_back(vars[2+i]);
