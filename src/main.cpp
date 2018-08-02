@@ -12,6 +12,9 @@
 // for convenience
 using json = nlohmann::json;
 
+// added to control when to print out additional helpers
+int useDebug = 1;
+
 // For converting back and forth between radians and degrees.
 constexpr double pi() { return M_PI; }
 double deg2rad(double x) { return x * pi() / 180; }
@@ -92,12 +95,28 @@ int main() {
           double psi = j[1]["psi"];
           double v = j[1]["speed"];
 
+          // capture the actuator state
+          double delta = j[1]["steering_angle"];
+          double alpha = j[1]["throttle"];
+
+          // if debug is set print values
+          if (useDebug == 1) {
+            cout << "state: " << px << " " << py << " " << psi << " " << v << " " << delta << " " << alpha << endl;
+          }
           /*
           * TODO: Calculate steering angle and throttle using MPC.
           *
           * Both are in between [-1, 1].
           *
           */
+
+          // first up convert the ptsx and ptsy vectors to car coordinates
+          // this is done by subtracting the global px and py from each coordinate
+          // and then using trig to calculate the car coord enquivalent position
+          // we take to an EigenVector as that's what polyfit wants
+
+
+
           double steer_value;
           double throttle_value;
 
