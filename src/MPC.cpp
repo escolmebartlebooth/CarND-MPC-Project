@@ -22,7 +22,7 @@ double dt = 0.05;
 const double Lf = 2.67;
 
 // define a reference velocity
-double ref_v = 60;
+double ref_v = 160;
 
 // The solver takes all the state variables and actuator
 // variables in a singular vector. Thus, we should to establish
@@ -44,7 +44,7 @@ int delta_tune = 1000;
 int alpha_tune = 100;
 int deltalag_tune = 1000;
 int alphalag_tune = 100;
-double max_throttle = 0.5;
+double max_throttle = 1.0;
 
 class FG_eval {
  public:
