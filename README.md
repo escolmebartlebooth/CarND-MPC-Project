@@ -76,16 +76,57 @@ This file has boilerplate for interaction with the simulator. In addition, the f
     * variable setup:
       * N and dt: determine the timestep and number of steps to model the trajectory for optimisation. This is a balance of computational time and making dt small enough to allow for a good fit to the reference trajectory
       * Lf and ref_v: Lf is the distance of the car's centre of gravity to the axle and ref_v ensures hat a minimum velocity is part of the cost calculation to avoid the prediction stopping
+      * vector position integers: These are helpers to navigate / populate the vector used to hold state and error variables for the N steps of the optimiser and also the cost value
+      * tuning constants for the cost value so that each cost can be weighted
     * FG_eval class
+      * This class is used to set up a vector to hold:
+        * the function cost
+        * the state and actuator values at each step
+      * The optimiser will use this class to calculate iterations and cost for each iteration so that an optimal set of actuator settings can be calculated based on the lowest cost
+      * The cost function comprises squared errors for cross track and angle trajectory error; the velocity; the actuator settings and the rate of change of actuator settings
     * MPC class with the solve function
+      * This class sets up the initial state and the lower and upper bounds of each state and actuator setting
+      * The optimiser is then called passing the state, constraints and FG_eval - the result (solution) - will contain the least cost next set of predicted way points and actuator settings 
 
 
 ## Discussion
 
-Basic version
+### Getting started
 
-Tuning N&dt
+The classroom version of the code was a good starting point for this project. Although some changes were necessary to make the code work with the simulator:
+  * the transformation of state and way points to car coordinates
+  * the inversion of the steering angle due to the expected input to the simulator
+  * use of a 3rd order polynomial cf. the classroom 1st order - the trajectory of the car warranted the 3rd order line fitting
+  * adjusting the initial state for latency using the motion model equations
 
-Tuning cost parameters
+Once these adjustments were made, the car would travel reasonably well for a few seconds before veering off the track. This then led to the need to tune the cost functions and some variable bounds.
 
-## Results
+### Getting round the track
+
+There were a number of options to tune the vehicle:
+* N and dt: how long the optimiser runs for and how discrete each time step is.
+* ref_v: what the minimum velocity should be in the cost function so that stopping is avoided
+* cost function parameters: weighting of cost function values
+* variable bounds: how large/small the actuation values should be allowed to be
+
+Given the hint in the tuning section of the classroom suggested using a tuning factor for steering to dampen erratic turning actuation.
+
+Also, with a max_throttle setting of -1 and +1, it seemed sensible to try and constrain the maximum velocity by limiting the throttle.
+
+This led to some experiments dampening the steering angle and rate of change of steering angle along with limiting the maximum throttle.
+
+After some 10s of experiments, the following settings allowed the car to go round the track:
+* N=25; dt=0.05; ref_v=60; max_throttle=0.75
+* steering angle dampening = 1000
+* steering angle delta = 500
+* acceleration dampening = 100
+* acceleration delta = 100
+
+The car driving was much smoother than that obtained with the PID Controller in an earlier project but the top speed was about 25mph...could we go faster...? 
+
+### Getting to go fast
+
+
+
+## Conclusions
+

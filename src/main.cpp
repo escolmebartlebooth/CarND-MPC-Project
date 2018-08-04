@@ -13,7 +13,7 @@
 using json = nlohmann::json;
 
 // added to control when to print out additional helpers
-int useDebug = 1;
+int useDebug = 0;
 
 // For converting back and forth between radians and degrees.
 constexpr double pi() { return M_PI; }
