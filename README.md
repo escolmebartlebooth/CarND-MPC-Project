@@ -1,5 +1,7 @@
 # Self-Driving Car Engineer Nanodegree Program: MPC Controller
+
 Author: David Escolme
+
 Date: 05 August 2018
 
 ---
@@ -33,7 +35,7 @@ To code and tune a model predictive controller so that a simulated car can navig
 * **Ipopt and CppAD:** Please refer to [this document](https://github.com/udacity/CarND-MPC-Project/blob/master/install_Ipopt_CppAD.md) for installation instructions.
 * [Eigen](http://eigen.tuxfamily.org/index.php?title=Main_Page). This is already part of the repo so you shouldn't have to worry about it.
 * Simulator. You can download these from the [releases tab](https://github.com/udacity/self-driving-car-sim/releases).
-* Not a dependency but read the [DATA.md](./DATA.md) for a description of the data sent back from the simulator.
+d* Not a dependency but read the [DATA.md](./DATA.md) for a description of the data sent back from the simulator.
 
 
 ## Basic Build Instructions
@@ -109,9 +111,7 @@ There were a number of options to tune the vehicle:
 * cost function parameters: weighting of cost function values
 * variable bounds: how large/small the actuation values should be allowed to be
 
-Given the hint in the tuning section of the classroom suggested using a tuning factor for steering to dampen erratic turning actuation.
-
-Also, with a max_throttle setting of -1 and +1, it seemed sensible to try and constrain the maximum velocity by limiting the throttle.
+The hint in the tuning section of the classroom suggested using a tuning factor for steering to dampen erratic turning actuation. Also, with a max_throttle setting of -1 and +1, it seemed sensible to try and constrain the maximum velocity by limiting the throttle to a lower set of bounds.
 
 This led to some experiments dampening the steering angle and rate of change of steering angle along with limiting the maximum throttle.
 
@@ -122,11 +122,45 @@ After some 10s of experiments, the following settings allowed the car to go roun
 * acceleration dampening = 100
 * acceleration delta = 100
 
-The car driving was much smoother than that obtained with the PID Controller in an earlier project but the top speed was about 25mph...could we go faster...? 
+The car driving was smoother (to the eye) than that obtained with the PID Controller in an earlier project but the top speed was about 20mph...so could we go faster...? 
 
 ### Getting to go fast
 
+To enable the car to go faster, I conducted a further series of experiments, tuning the set of parameters to try and achieve a faster top speed without crashing. the table below shows a few of the settings:
 
+| Res       | N  | dt   | ref_v | cte | psi | v                  | delta | acc | lag delta | lag acc | max throttle | result                                   |
+|-----------|----|------|-------|-----|-----|--------------------|-------|-----|-----------|---------|--------------|------------------------------------------|
+| 800x600   | 25 | 0.05 | 60    | 1   | 1   | 1                  | 1000  | 300 | 100       | 100     | 0.75         | success (21 mph)                         |
+|           | 50 |      |       |     |     |                    |       |     |           |         |              | failure (leaves track at bend            |
+|           | 10 |      |       |     |     |                    |       |     |           |         |              | failure (very slow and drifts off track) |
+|           | 25 |      |       |     |     | normalise by ref_v |       |     |           |         |              | failure (very very slow)                 |
+|           |    |      |       |     |     | norm & 100         |       |     |           |         |              | success (28 mph)                         |
+|           |    |      |       |     |     |                    |       |     |           |         | 1.0          | success (28.75 mph)                      |
+|           |    |      | 100   |     |     |                    |       |     |           |         |              | success (35 mph)                         |
+|           |    |      |       |     |     |                    |       |     |           |         |              | failure (leaves track on bend at 45 mph) |
+|           |    |      |       | 10  | 10  |                    |       |     |           |         |              | failure (leaves track quickly)           |
+|           |    |      |       | 1   | 0.5 |                    |       |     |           |         |              | success (30 mph)                         |
+| 2048x1536 |    |      |       |     |     |                    |       |     |           |         |              | failure (veers off track)                |
+| 800 x 600 | 15 |      |       |     |     |                    |       |     |           |         |              | success (28 mph)                         |
+|           | 20 |      |       |     |     |                    |       |     |           |         |              | success (35 mph)                         |
+
+The 'best' settings i achieved with this manual tuning process was:
+
+* using 800x600 resolution
+* N=25; dt=0.05; ref_v=200
+* tuning factors on cost funtions: cte = 1; psi=0.2; v=150; steering angle = 1000; acceleration = 300; lagged steering angle = 10; lagged acceleration = 10
+* max Throttle = 1.0
+
+achieving a top speed of 51 mph. Attempts to go faster were interesting. 
 
 ## Conclusions
 
+The MPC controller looks to provide benefits over PID controllers when the underlying system has dynamic characteristics such as actuator latency. These characteristics can be added to the system model and so become part of the model optimisation problem.
+
+Using manual tuning, I didn't really achieve a good result in terms of top speed, so either a more comprehensive set of tests were needed or perhaps a more automated approach to tuning would be beneficial or adjusting the cost function itself would help achieve that faster speed.
+
+Also, i wasn't sure where the relative size of each cost function element meant that each should be normalised to a standard range (similar to parameter normalisation in support vector machines). I surmised that using cost function parameters essentially dealt with that problem by providing weighting for each function entry.
+
+The success of the model was also dependent on the computing power of the Laptop I was using. The simulator introduced increasing latency with higher resolution graphics.
+
+The controller provided a very smooth (to the eye) driving experience.

@@ -22,7 +22,7 @@ double dt = 0.05;
 const double Lf = 2.67;
 
 // define a reference velocity
-double ref_v = 60;
+double ref_v = 200;
 
 // The solver takes all the state variables and actuator
 // variables in a singular vector. Thus, we should to establish
@@ -38,13 +38,13 @@ size_t a_start = delta_start + N - 1;
 
 // set constraint tuners here
 int cte_tune = 1;
-int epsi_tune = 1;
-int v_tune = 1;
+int epsi_tune = 0.2;
+int v_tune = 150;
 int delta_tune = 1000;
-int alpha_tune = 250;
-int deltalag_tune = 100;
-int alphalag_tune = 100;
-double max_throttle = 0.75;
+int alpha_tune = 300;
+int deltalag_tune = 10;
+int alphalag_tune = 10;
+double max_throttle = 1.0;
 
 class FG_eval {
  public:
@@ -66,7 +66,7 @@ class FG_eval {
     for (unsigned int t = 0; t < N; t++) {
       fg[0] += cte_tune * CppAD::pow(vars[cte_start + t], 2);
       fg[0] += epsi_tune * CppAD::pow(vars[epsi_start + t], 2);
-      fg[0] += v_tune * CppAD::pow(vars[v_start + t] - ref_v, 2);
+      fg[0] += v_tune * (CppAD::pow(vars[v_start + t] - ref_v, 2) / ref_v);
     }
 
     // Minimize the use of actuators.
