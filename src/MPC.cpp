@@ -6,8 +6,8 @@
 using CppAD::AD;
 
 // TODO: Set the timestep length and duration
-size_t N = 25;
-double dt = 0.05;
+size_t N = 10;
+double dt = 0.1;
 
 // This value assumes the model presented in the classroom is used.
 //
@@ -22,7 +22,7 @@ double dt = 0.05;
 const double Lf = 2.67;
 
 // define a reference velocity
-double ref_v = 200;
+double ref_v = 60;
 
 // The solver takes all the state variables and actuator
 // variables in a singular vector. Thus, we should to establish
@@ -37,14 +37,25 @@ size_t delta_start = epsi_start + N;
 size_t a_start = delta_start + N - 1;
 
 // set constraint tuners here
+//int cte_tune = 1;
+//int epsi_tune = 0.2;
+//int v_tune = 150;
+//int delta_tune = 1000;
+//int alpha_tune = 300;
+//int deltalag_tune = 10;
+//int alphalag_tune = 10;
+//double max_throttle = 1.0;
+
 int cte_tune = 1;
-int epsi_tune = 0.2;
-int v_tune = 150;
-int delta_tune = 1000;
-int alpha_tune = 300;
+int epsi_tune = 1;
+int v_tune = ref_v;
+int delta_tune = 800;
+int alpha_tune = 1;
 int deltalag_tune = 10;
-int alphalag_tune = 10;
+int alphalag_tune = 1;
 double max_throttle = 1.0;
+
+
 
 class FG_eval {
  public:

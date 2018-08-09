@@ -3,8 +3,14 @@
 Author: David Escolme
 
 Date: 05 August 2018
+Updated: 10 August 2018
 
 ---
+
+[//]: # (Image References)
+
+[image1]: Receding_Horizon.PNG "Receding Horizon Control"
+[image2]: Motion_Model.PNG "Motion Model"
 
 ## Objectives
 
@@ -49,49 +55,87 @@ d* Not a dependency but read the [DATA.md](./DATA.md) for a description of the d
 
 The code has 2 files:
 
-* main.cpp
+* main.cpp: 
+  * allows for extended debug messages using a debug flag (set 1 turns the extended debug on)
+  * contains the boilerplate code to interact with the simulator and optimiser
+  * converts reference way points to car coordinates and fits a 3rd order polynomial to the way points
+  * models latency of actuation into the current state
+  * calculates cross-track and steering angle errors
+  * passes information to the optimiser and receives results back
+  * passes the optimised actuator settings and way points to the simulator 
 * mpc.cpp
-
-### main.cpp
-
-This file has boilerplate for interaction with the simulator. In addition, the following tasks are coded up to make the MPC controller operate:
-
-* debug flag (integer): if set to 1 a fair few output parameters are sent to the command line
-* polyevalpderivative: this function was added to enable a functional solution for calculating the y coordinate for the differential of the fitted polynomial
-* the input states (x, y, v, psi, steering angle, throttle setting) are captured as are the reference waypoints
-* using trigonometry the reference way points are converted to car coordinates:
-  * x = (x-px)*cos(-psi)-(y-py)*sin(-psi)
-  * y = (x-px)*sin(-psi)+(y-py)*cos(-psi)
-  * using the equations above, each way point is converted and appended to X and Y waypoint vectors
-  * a 3rd order polynomial line is fitted to the transformed way points and the coefficients of the line captured
-* the initial state in car coordinates is captured - this makes x, y and psi zero. v is the passed value
-* errors are calculated for cross-track and angle
-* the state and errors are then transformed using the motion model equations to account for the latency in the actuation of 100ms. In essence, the motion models give the state and errors as if the model has moved on by the latency figure
-* the state and errors are passed to the mpc solve method along with the polynomial coefficient and the result captured, which contains the predicted next steering angle and throttle setting along with predicted way points from the optimal solution arrived at by the optimiser
-* the steering angle is inverted due to the nature of the simulator and constrained to -1 / +1
-* finally both the reference and predicted way points and the adjusted steering angle and throttle values are passed back to the simulator
+  * sets up reference variables N, dt, ref_v and Lf
+  * FG_eval class to construct the cost function and optimiser vector
+  * MPC class which initialises state and performs the optimisation
 
 
-### mpc.cpp / mpc.h
+## Explanation of the MPC Controller
 
-* The mpc file has 3 main parts:
-    * variable setup:
-      * N and dt: determine the timestep and number of steps to model the trajectory for optimisation. This is a balance of computational time and making dt small enough to allow for a good fit to the reference trajectory
-      * Lf and ref_v: Lf is the distance of the car's centre of gravity to the axle and ref_v ensures hat a minimum velocity is part of the cost calculation to avoid the prediction stopping
-      * vector position integers: These are helpers to navigate / populate the vector used to hold state and error variables for the N steps of the optimiser and also the cost value
-      * tuning constants for the cost value so that each cost can be weighted
-    * FG_eval class
-      * This class is used to set up a vector to hold:
-        * the function cost
-        * the state and actuator values at each step
-      * The optimiser will use this class to calculate iterations and cost for each iteration so that an optimal set of actuator settings can be calculated based on the lowest cost
-      * The cost function comprises squared errors for cross track and angle trajectory error; the velocity; the actuator settings and the rate of change of actuator settings
-    * MPC class with the solve function
-      * This class sets up the initial state and the lower and upper bounds of each state and actuator setting
-      * The optimiser is then called passing the state, constraints and FG_eval - the result (solution) - will contain the least cost next set of predicted way points and actuator settings 
+references beyond the Udacity classroom: https://en.wikipedia.org/wiki/Model_predictive_control
+
+For the self-driving car simulation, MPC takes a motion model for the car and at discrete timesteps samples the model state. The MPC controller uses that modelled state at time step t, together with a reference trajectory to seek an optmimum control strategy over a relatively short time horizon to elicit the next discrete set of actuations at time step t+1. The process is repeated at each subsequent time step with the horizon moving one step forward, thus the method is called a receding horizon control.
+
+![alt text][image1]
+
+The horizon T is determined by the product of 2 factors: N * dt, where N is the number of time_steps and dt is the sampling distance between 2 steps. It is important to choose N and dt wisely. This is discussed in the tuning section.
+
+For the car the motion model used is:
+
+x(t+1) = x(t) + v(t)*cos(psi(t))*dt
+y(t+1) = y(t) + v(t)*sin(psi(t))*dt
+psi(t+1) = psi(t) - v(t)/Lf*delta(t)*dt
+v(t+1) = v(t) + acc(t)*dt
+cte(t+1) = cte(t)  + v(t)*sin(epsi(t))*dt
+epsi(t+1) = epsi(t) - v(t)/Lf*delta*dt
+
+where:
+x = x position of car
+y = y position of car
+psi = angle of car
+v = velocity of car
+cte = the cross-track error (positional error)
+epsi = the angular error
+
+![alt text][image2]
+
+and:
+delta is the actuation value for steering
+acc is the actuation value for acceleration/deceleration
+
+and:
+Lf is the distance of the center of gravity of the car from the front of the car
+
+and:
+cte(t) = polyeval(coeffs, x(t)) - y(t)
+epsi(t) = psi(t) - atan(polyevalpderivative(coeffs, x(t)))
+
+where:
+polyeval evaluates a polynomial using coefficients that model the reference trajectory
+polyevalderivative evaluates the first derivative of that polynomial
+          
+
+Given the current state at time t and the reference trajectory, the controller can calculate an optimium control strategy by seeking an optimum solution for the motion model based on minimizing a cost function over many iterations on the chosen horizon T. The cost function is evaluated and the minimum cost solution is then used as discussed before to choose the time t+1 actuation values.
+
+The cost function is crucial to achieving good control. For my car model, 7 squared cost factors are added together to create a cumulative model cost:
+
+cte: what is the cross track error
+epsi: what is the angular error
+v - vref: how far from a desired velocity the solution is
+delta: how large is the steering angle
+acc: how fast is the acceleration
+delta rate of change: how different is the steering angle cf. last value
+acc rate of change: how different is the acceleration cf. last value
+
+each of these can then be weighted so that preference is given to one or more costs and the v_ref figure can also be tuned.
+
+Upper / lower bounds are set on the actuation values to sensible physical values (eg. do not allow a steering angle of 180 degrees), so that the car simulation represents a real world model.
+
+In addition, other dynamic system characteristics can be modelled into the system. In the case of the car simulator, there is a 100ms actuation delay. This was modelled by advancing the initial state and errors using the motion models and a dt of 100ms.
 
 
-## Discussion
+## Tuning
+
+Once the model was set up, the main task was to tune the horizon, reference velocity and cost function weights so that the car could progress around the track as fast, as smooth as possible without crashing.
 
 ### Getting started
 
@@ -99,9 +143,9 @@ The classroom version of the code was a good starting point for this project. Al
   * the transformation of state and way points to car coordinates
   * the inversion of the steering angle due to the expected input to the simulator
   * use of a 3rd order polynomial cf. the classroom 1st order - the trajectory of the car warranted the 3rd order line fitting
-  * adjusting the initial state for latency using the motion model equations
+  * as mentioned above, adjusting the initial state for latency using the motion model equations
 
-Once these adjustments were made, the car would travel reasonably well for a few seconds before veering off the track. This then led to the need to tune the cost functions and some variable bounds.
+Once these adjustments were made, the car would travel reasonably well for a few seconds before veering off the track. This then led to the need to tune the horizon, cost functions and some variable bounds.
 
 ### Getting round the track
 
@@ -111,38 +155,47 @@ There were a number of options to tune the vehicle:
 * cost function parameters: weighting of cost function values
 * variable bounds: how large/small the actuation values should be allowed to be
 
+The starting point was to choose plausible starting values for N and dt. T should be as long as possible but dt should be as short as possible. If dt is too large, the model will not be able to follow the trajectory well enough to stablise as the predicted trajectory will not be able to fit well enough to the polynomial modelling the reference way points. Conversely, if dt is too small for a fixed T, then the computation cost increases beyond an acceptable amount.
+
+For example, if we assume a fixed velocity of 30 mph and that the car is travelling in a straight line, then the car will travel the following distances for each given value of dt in seconds:
+
+Distance = Velocity * Cos(0) * dt:
+
+* dt = 0.05; distance = 1.5 metres
+* dt = 0.1; distance = 3 metres
+* dt = 0.5; distance = 15 metres
+* dt = 1; distance = 30 metres
+
+Continuing this theme, for N iterations we would travel:
+
+* N = 10, dt = 0.1, distance = 30 metres
+* N = 25, dt = 0.1, distance = 75 metres
+* N = 10, dt = 0.05, distance = 15 metres
+* N = 25, dt = 0.05, distance = 37.5 metres
+
+I originally chose N = 25 and dt = 0.05. Given that computational time is also important, i changed this to N = 10 and dt = 0.1 after advice from a project reviewer and reviewing the effect of N and dt on the motion model of the car.
+
+Once N and dt were chosen, it was time to look for other tuning parameters.
+
 The hint in the tuning section of the classroom suggested using a tuning factor for steering to dampen erratic turning actuation. Also, with a max_throttle setting of -1 and +1, it seemed sensible to try and constrain the maximum velocity by limiting the throttle to a lower set of bounds.
 
 This led to some experiments dampening the steering angle and rate of change of steering angle along with limiting the maximum throttle.
 
 After some 10s of experiments, the following settings allowed the car to go round the track:
-* N=25; dt=0.05; ref_v=60; max_throttle=0.75
-* steering angle dampening = 1000
-* steering angle delta = 500
-* acceleration dampening = 100
-* acceleration delta = 100
+* N = 10; dt=0.1; ref_v=60; max_throttle=1.0
+* steering angle dampening = 800
+* acceleration dampening = 10
 
-The car driving was smoother (to the eye) than that obtained with the PID Controller in an earlier project but the top speed was about 20mph...so could we go faster...? 
+all other tuning weights were left as 1.
+
+The car driving was smoother (to the eye) than that obtained with the PID Controller in an earlier project but the top speed was about 50mph...so could we go faster...? 
+
 
 ### Getting to go fast
 
 To enable the car to go faster, I conducted a further series of experiments, tuning the set of parameters to try and achieve a faster top speed without crashing. the table below shows a few of the settings:
 
-| Res       | N  | dt   | ref_v | cte | psi | v                  | delta | acc | lag delta | lag acc | max throttle | result                                   |
-|-----------|----|------|-------|-----|-----|--------------------|-------|-----|-----------|---------|--------------|------------------------------------------|
-| 800x600   | 25 | 0.05 | 60    | 1   | 1   | 1                  | 1000  | 300 | 100       | 100     | 0.75         | success (21 mph)                         |
-|           | 50 |      |       |     |     |                    |       |     |           |         |              | failure (leaves track at bend            |
-|           | 10 |      |       |     |     |                    |       |     |           |         |              | failure (very slow and drifts off track) |
-|           | 25 |      |       |     |     | normalise by ref_v |       |     |           |         |              | failure (very very slow)                 |
-|           |    |      |       |     |     | norm & 100         |       |     |           |         |              | success (28 mph)                         |
-|           |    |      |       |     |     |                    |       |     |           |         | 1.0          | success (28.75 mph)                      |
-|           |    |      | 100   |     |     |                    |       |     |           |         |              | success (35 mph)                         |
-|           |    |      |       |     |     |                    |       |     |           |         |              | failure (leaves track on bend at 45 mph) |
-|           |    |      |       | 10  | 10  |                    |       |     |           |         |              | failure (leaves track quickly)           |
-|           |    |      |       | 1   | 0.5 |                    |       |     |           |         |              | success (30 mph)                         |
-| 2048x1536 |    |      |       |     |     |                    |       |     |           |         |              | failure (veers off track)                |
-| 800 x 600 | 15 |      |       |     |     |                    |       |     |           |         |              | success (28 mph)                         |
-|           | 20 |      |       |     |     |                    |       |     |           |         |              | success (35 mph)                         |
+
 
 The 'best' settings i achieved with this manual tuning process was:
 
@@ -157,10 +210,8 @@ achieving a top speed of 51 mph. Attempts to go faster were interesting.
 
 The MPC controller looks to provide benefits over PID controllers when the underlying system has dynamic characteristics such as actuator latency. These characteristics can be added to the system model and so become part of the model optimisation problem.
 
-Using manual tuning, I didn't really achieve a good result in terms of top speed, so either a more comprehensive set of tests were needed or perhaps a more automated approach to tuning would be beneficial or adjusting the cost function itself would help achieve that faster speed.
+Manual tuning seemed to be ok but it would be better to conduct a more rigorous and automatic tuning procedure.
 
-Also, i wasn't sure where the relative size of each cost function element meant that each should be normalised to a standard range (similar to parameter normalisation in support vector machines). I surmised that using cost function parameters essentially dealt with that problem by providing weighting for each function entry.
-
-The success of the model was also dependent on the computing power of the Laptop I was using. The simulator introduced increasing latency with higher resolution graphics.
+The success of the model was also dependent on the computing power of the Laptop I was using. The simulator was subject to increasing latency with higher resolution graphics.
 
 The controller provided a very smooth (to the eye) driving experience.

@@ -177,10 +177,12 @@ int main() {
           x0 = x0 + v0*cos(psi0)*delay;
           y0 = y0 + v0*sin(psi0)*delay;
           psi0 = psi0 - v0/Lf*delta*delay;
-          v0 = v0 + alpha*delay;
           cte0 = cte0  + v0*sin(epsi0)*delay;
           epsi0 = epsi0 - v0/Lf*delta*delay;
-
+          
+          // moved below line as was updating v0 before use in updating other terms
+          v0 = v0 + alpha*delay;
+          
           // create state vector
           Eigen::VectorXd state(6);
           state << x0, y0, psi0, v0, cte0, epsi0;
