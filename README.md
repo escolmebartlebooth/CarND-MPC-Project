@@ -182,13 +182,13 @@ The hint in the tuning section of the classroom suggested using a tuning factor 
 This led to some experiments dampening the steering angle and rate of change of steering angle along with limiting the maximum throttle.
 
 After some 10s of experiments, the following settings allowed the car to go round the track:
-* N = 10; dt=0.1; ref_v=60; max_throttle=1.0
-* steering angle dampening = 800
+* N = 10; dt=0.1; ref_v=50; max_throttle=1.0
+* steering angle dampening = 500
 * acceleration dampening = 10
 
 all other tuning weights were left as 1.
 
-The car driving was smoother (to the eye) than that obtained with the PID Controller in an earlier project but the top speed was about 50mph...so could we go faster...? 
+The car driving was smoother (to the eye) than that obtained with the PID Controller in an earlier project but the top speed was about 50mph (the reference velocity)...so could we go faster...? 
 
 
 ### Getting to go fast
