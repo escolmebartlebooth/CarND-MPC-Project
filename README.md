@@ -3,14 +3,15 @@
 Author: David Escolme
 
 Date: 05 August 2018
+
 Updated: 10 August 2018
 
 ---
 
 [//]: # (Image References)
 
-[image1]: Receding_Horizon.PNG "Receding Horizon Control"
-[image2]: Motion_Model.PNG "Motion Model"
+[image1]: Receding_Horizon.JPG "Receding Horizon Control"
+[image2]: Motion_Model.JPG "Motion Model"
 
 ## Objectives
 
@@ -55,14 +56,14 @@ d* Not a dependency but read the [DATA.md](./DATA.md) for a description of the d
 
 The code has 2 files:
 
-* main.cpp: 
+* main.cpp:
   * allows for extended debug messages using a debug flag (set 1 turns the extended debug on)
   * contains the boilerplate code to interact with the simulator and optimiser
   * converts reference way points to car coordinates and fits a 3rd order polynomial to the way points
   * models latency of actuation into the current state
   * calculates cross-track and steering angle errors
   * passes information to the optimiser and receives results back
-  * passes the optimised actuator settings and way points to the simulator 
+  * passes the optimised actuator settings and way points to the simulator
 * mpc.cpp
   * sets up reference variables N, dt, ref_v and Lf
   * FG_eval class to construct the cost function and optimiser vector
@@ -77,60 +78,88 @@ For the self-driving car simulation, MPC takes a motion model for the car and at
 
 ![alt text][image1]
 
+Image taken from: https://en.wikipedia.org/wiki/Model_predictive_control
+
 The horizon T is determined by the product of 2 factors: N * dt, where N is the number of time_steps and dt is the sampling distance between 2 steps. It is important to choose N and dt wisely. This is discussed in the tuning section.
 
 For the car the motion model used is:
 
 x(t+1) = x(t) + v(t)*cos(psi(t))*dt
+
 y(t+1) = y(t) + v(t)*sin(psi(t))*dt
+
 psi(t+1) = psi(t) - v(t)/Lf*delta(t)*dt
+
 v(t+1) = v(t) + acc(t)*dt
+
 cte(t+1) = cte(t)  + v(t)*sin(epsi(t))*dt
+
 epsi(t+1) = epsi(t) - v(t)/Lf*delta*dt
 
 where:
+
 x = x position of car
+
 y = y position of car
+
 psi = angle of car
+
 v = velocity of car
+
 cte = the cross-track error (positional error)
+
 epsi = the angular error
 
 ![alt text][image2]
 
 and:
+
 delta is the actuation value for steering
+
 acc is the actuation value for acceleration/deceleration
 
 and:
+
 Lf is the distance of the center of gravity of the car from the front of the car
 
 and:
+
 cte(t) = polyeval(coeffs, x(t)) - y(t)
+
 epsi(t) = psi(t) - atan(polyevalpderivative(coeffs, x(t)))
 
 where:
+
 polyeval evaluates a polynomial using coefficients that model the reference trajectory
+
 polyevalderivative evaluates the first derivative of that polynomial
-          
+
 
 Given the current state at time t and the reference trajectory, the controller can calculate an optimium control strategy by seeking an optimum solution for the motion model based on minimizing a cost function over many iterations on the chosen horizon T. The cost function is evaluated and the minimum cost solution is then used as discussed before to choose the time t+1 actuation values.
 
 The cost function is crucial to achieving good control. For my car model, 7 squared cost factors are added together to create a cumulative model cost:
 
 cte: what is the cross track error
+
 epsi: what is the angular error
+
 v - vref: how far from a desired velocity the solution is
+
 delta: how large is the steering angle
+
 acc: how fast is the acceleration
+
 delta rate of change: how different is the steering angle cf. last value
+
 acc rate of change: how different is the acceleration cf. last value
 
-each of these can then be weighted so that preference is given to one or more costs and the v_ref figure can also be tuned.
+Each of these can then be weighted so that preference is given to one or more costs and the v_ref figure can also be tuned.
 
 Upper / lower bounds are set on the actuation values to sensible physical values (eg. do not allow a steering angle of 180 degrees), so that the car simulation represents a real world model.
 
-In addition, other dynamic system characteristics can be modelled into the system. In the case of the car simulator, there is a 100ms actuation delay. This was modelled by advancing the initial state and errors using the motion models and a dt of 100ms.
+In addition, other dynamic system characteristics can be modelled into the system.
+
+In the case of the car simulator, there is a 100ms actuation delay. This was modelled by advancing the initial state and errors using the motion models and a dt of 100ms.
 
 
 ## Tuning
@@ -139,7 +168,9 @@ Once the model was set up, the main task was to tune the horizon, reference velo
 
 ### Getting started
 
-The classroom version of the code was a good starting point for this project. Although some changes were necessary to make the code work with the simulator:
+The classroom version of the code was a good starting point for this project.
+
+Some changes were necessary to make the code work with the simulator:
   * the transformation of state and way points to car coordinates
   * the inversion of the steering angle due to the expected input to the simulator
   * use of a 3rd order polynomial cf. the classroom 1st order - the trajectory of the car warranted the 3rd order line fitting
@@ -188,7 +219,7 @@ After some 10s of experiments, the following settings allowed the car to go roun
 
 all other tuning weights were left as 1.
 
-The car driving was smoother (to the eye) than that obtained with the PID Controller in an earlier project but the top speed was about 50mph (the reference velocity)...so could we go faster...? 
+The car driving was smoother (to the eye) than that obtained with the PID Controller in an earlier project but the top speed was about 50mph (the reference velocity)...so could we go faster...?
 
 
 ### Getting to go fast
