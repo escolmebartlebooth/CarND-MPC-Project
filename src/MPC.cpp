@@ -9,7 +9,7 @@ using CppAD::AD;
 size_t N = 10;
 //size_t N = 30;
 double dt = 0.1;
-//double dt = 0.05;
+//double dt = 0.03;
 
 // This value assumes the model presented in the classroom is used.
 //
@@ -25,7 +25,7 @@ const double Lf = 2.67;
 
 // define a reference velocity
 double ref_v = 50;
-//double ref_v = 100;
+//double ref_v = 70;
 
 // The solver takes all the state variables and actuator
 // variables in a singular vector. Thus, we should to establish
@@ -48,12 +48,12 @@ int epsi_tune = 1;
 int v_tune = ref_v;
 
 int delta_tune = 500;
-//int delta_tune = 1000;
+//int delta_tune = 3000;
 
 int alpha_tune = 1;
 
 int deltalag_tune = 10;
-//int deltalag_tune = 100;
+//int deltalag_tune = 3000;
 
 int alphalag_tune = 1;
 

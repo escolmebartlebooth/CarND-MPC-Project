@@ -173,7 +173,7 @@ Continuing this theme, for N iterations we would travel:
 * N = 10, dt = 0.05, distance = 15 metres
 * N = 25, dt = 0.05, distance = 37.5 metres
 
-I originally chose N = 25 and dt = 0.05. Given that computational time is also important, i changed this to N = 10 and dt = 0.1 after advice from a project reviewer and reviewing the effect of N and dt on the motion model of the car.
+I originally chose N = 25 and dt = 0.05. Given that computational time is also important, I changed this to N = 10 and dt = 0.1 after advice from a project reviewer and reviewing the effect of N and dt on the motion model of the car.
 
 Once N and dt were chosen, it was time to look for other tuning parameters.
 
@@ -193,24 +193,24 @@ The car driving was smoother (to the eye) than that obtained with the PID Contro
 
 ### Getting to go fast
 
-To enable the car to go faster, I conducted a further series of experiments, tuning the set of parameters to try and achieve a faster top speed without crashing. the table below shows a few of the settings:
+To enable the car to go faster, I conducted a further series of experiments, tuning the set of parameters to try and achieve a faster top speed without crashing.
 
+The first step was to change the cost function for velocity would penalise based on the distance from a higher reference velocity; in this case I chose 150 mph. This setting immediately introduced instability into the car once the speed passed 60 mph.
 
+To reduce the instability, I first decreased dt to shorten the sampling time step for the predicted way points and increased N to keep T constant. The idea here was that increased speed meant for a fixed time step more distance was travelled and so by shortening the timestep, the car might be less vulnerable to large changes in direction. As the reference velocity was tripled, I decreased dt by a similar proportion to 0.03. The car moved further around the track but came off at the first bend.
 
-The 'best' settings i achieved with this manual tuning process was:
+I then increased both the steering angle and rate of change of steering angle cost factors to try to reduce the abruptness of changes of direction. This led to the car making it across the bridge and then coming off the track.
 
-* using 800x600 resolution
-* N=25; dt=0.05; ref_v=200
-* tuning factors on cost funtions: cte = 1; psi=0.2; v=150; steering angle = 1000; acceleration = 300; lagged steering angle = 10; lagged acceleration = 10
-* max Throttle = 1.0
+In the end I was only able to get the car to run against a reference velocity of 70 mph with settings of:
 
-achieving a top speed of 51 mph. Attempts to go faster were interesting. 
+N = 30; dt = 0.03; ref_v = 70; steering_angle_cost = 3000; rate_of_angle_change = 3000;
+
 
 ## Conclusions
 
-The MPC controller looks to provide benefits over PID controllers when the underlying system has dynamic characteristics such as actuator latency. These characteristics can be added to the system model and so become part of the model optimisation problem.
+The MPC controller provides benefits over PID controllers when the underlying system has dynamic characteristics such as actuator latency. These characteristics can be added to the system model and so become part of the model optimisation problem.
 
-Manual tuning seemed to be ok but it would be better to conduct a more rigorous and automatic tuning procedure.
+Manual tuning was ok for lower speeds but it would be better to conduct a more rigorous and automatic tuning procedure.
 
 The success of the model was also dependent on the computing power of the Laptop I was using. The simulator was subject to increasing latency with higher resolution graphics.
 
