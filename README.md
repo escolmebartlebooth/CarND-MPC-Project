@@ -94,7 +94,7 @@ v(t+1) = v(t) + acc(t)*dt
 
 cte(t+1) = cte(t)  + v(t)*sin(epsi(t))*dt
 
-epsi(t+1) = epsi(t) - v(t)/Lf*delta*dt
+epsi(t+1) = epsi(t) - v(t)/Lf*delta(t)*dt
 
 where:
 
